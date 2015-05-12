@@ -1,0 +1,128 @@
+require 'rails_helper'
+
+RSpec.describe UsersController, type: :controller do
+
+	render_views
+  
+	describe "GET 'show'" do
+	
+		before(:each) do
+			@user = FactoryGirl.create(:user)
+		end
+		
+		it "devrait réussir" do
+			get :show, :id => @user
+			expect(response).to be_success
+		end
+		it "devrait trouver le bon utilisateur" do
+			get :show, :id => @user
+			expect(assigns(:user)).to == @user
+    end
+     it "devrait avoir le bon titre" do
+      get :show, :id => @user
+      expect(response.body).to have_title(@user.nom)
+    end
+
+    it "devrait inclure le nom de l'utilisateur" do
+      get :show, :id => @user
+      expect(response).to have_selector("h1", :content => @user.nom)
+    end
+
+    it "devrait avoir une image de profil" do
+      get :show, :id => @user
+      expect(response).to have_selector("h1>img", :class => "gravatar")
+    end
+  end
+  
+  describe "GET #new" do
+  
+    it "devrait réussir" do
+      get :new
+      expect(response).to have_http_status(:success)
+    end    
+    
+    it "devrait avoir le bon titre" do
+      get :new
+      expect(response.body).to have_title("Inscription")
+    end
+    
+  end
+  
+  describe "POST 'create'" do
+
+    describe "échec" do
+
+      before(:each) do
+        @attr = { :nom => "", :email => "", :password => "",
+                  :password_confirmation => "" }
+      end
+
+      it "ne devrait pas créer d'utilisateur" do
+        expect{
+          post :create, :user => @attr
+        }.not_to change{ User.count }
+      end
+
+      it "devrait avoir le bon titre" do
+        post :create, :user => @attr
+        expect(response.body).to have_title("Inscription")
+      end
+
+      it "devrait rendre la page 'new'" do
+        post :create, :user => @attr
+        expect(response).to render_template('new')
+      end
+    end
+  
+  describe "succès" do
+
+      before(:each) do
+        @attr = { :nom => "New User", :email => "user@example.com",
+                  :password => "foobar", :password_confirmation => "foobar" }
+      end
+
+      it "devrait créer un utilisateur" do
+        expect{
+          post :create, :user => @attr
+        }.to change(User, :count).by(1)
+      end
+
+      it "devrait rediriger vers la page d'affichage de l'utilisateur" do
+        post :create, :user => @attr
+        expect(response).to redirect_to(user_path(assigns(:user)))
+      end 
+      
+       it "devrait avoir un message de bienvenue" do
+        post :create, :user => @attr
+        expect(flash[:success]).to eq("Bienvenue dans l'Application Exemple !")
+      end
+      
+            it "devrait identifier l'utilisateur" do
+        post :create, :user => @attr
+        expect(controller).to be_signed_in
+      end
+      
+    end
+  end
+
+describe "pour un utilisateur identifié" do
+
+      before(:each) do
+        wrong_user = Factory(:user, :email => "user@example.net")
+        test_sign_in(wrong_user)
+      end
+
+      it "devrait correspondre à l'utilisateur à éditer" do
+        get :edit, :id => @user
+        response.should redirect_to(root_path)
+      end
+
+      it "devrait correspondre à l'utilisateur à actualiser" do
+        put :update, :id => @user, :user => {}
+        response.should redirect_to(root_path)
+      end
+    end
+  end
+end
+
+
